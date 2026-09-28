@@ -26,7 +26,9 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.text.selection.SelectionContainer
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.outlined.ArrowBack
 import androidx.compose.material.icons.outlined.ContentCopy
+import androidx.compose.material.icons.outlined.PostAdd
 import androidx.compose.material.icons.outlined.Delete
 import androidx.compose.material.icons.outlined.DeleteSweep
 import androidx.compose.material.icons.outlined.Visibility
@@ -72,7 +74,7 @@ import kotlinx.coroutines.delay
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun DebugScreen(viewModel: DebugViewModel = viewModel()) {
+fun DebugScreen(onBack: () -> Unit, viewModel: DebugViewModel = viewModel()) {
     val context = LocalContext.current
     val notifications by viewModel.notifications.collectAsStateWithLifecycle()
     val settings by viewModel.settingsState.collectAsStateWithLifecycle()
@@ -105,6 +107,11 @@ fun DebugScreen(viewModel: DebugViewModel = viewModel()) {
         topBar = {
             TopAppBar(
                 title = { Text("Notifiche ricevute") },
+                navigationIcon = {
+                    IconButton(onClick = onBack) {
+                        Icon(Icons.AutoMirrored.Outlined.ArrowBack, contentDescription = "Indietro")
+                    }
+                },
                 actions = {
                     IconButton(onClick = { confirmDeleteAll = true }) {
                         Icon(Icons.Outlined.DeleteSweep, contentDescription = "Cancella tutte")
@@ -171,6 +178,16 @@ fun DebugScreen(viewModel: DebugViewModel = viewModel()) {
                     watched = n.packageName in settings.watchedPackages,
                     onCopy = { copyToClipboard(context, n.toDebugString(formatDateTime(n.postTime))) },
                     onToggleWatched = { viewModel.toggleWatched(n.packageName) },
+                    onCreateExpense = {
+                        viewModel.createExpense(n, n.toDebugString(formatDateTime(n.postTime))) { created ->
+                            Toast.makeText(
+                                context,
+                                if (created) "Spesa da rivedere creata: la trovi in Home"
+                                else "Nessun importo trovato, oppure la spesa esiste già",
+                                Toast.LENGTH_SHORT,
+                            ).show()
+                        }
+                    },
                     onDelete = { viewModel.delete(n.id) },
                 )
             }
@@ -271,6 +288,7 @@ private fun NotificationCard(
     watched: Boolean,
     onCopy: () -> Unit,
     onToggleWatched: () -> Unit,
+    onCreateExpense: () -> Unit,
     onDelete: () -> Unit,
 ) {
     Card(
@@ -296,6 +314,7 @@ private fun NotificationCard(
                         contentDescription = if (watched) "Smetti di monitorare" else "Monitora questa app",
                     )
                 }
+                IconButton(onClick = onCreateExpense) { Icon(Icons.Outlined.PostAdd, contentDescription = "Crea spesa") }
                 IconButton(onClick = onCopy) { Icon(Icons.Outlined.ContentCopy, contentDescription = "Copia") }
                 IconButton(onClick = onDelete) { Icon(Icons.Outlined.Delete, contentDescription = "Elimina") }
             }

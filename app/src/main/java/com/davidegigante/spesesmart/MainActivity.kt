@@ -4,7 +4,7 @@ import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
-import com.davidegigante.spesesmart.ui.debug.DebugScreen
+import com.davidegigante.spesesmart.ui.AppRoot
 import com.davidegigante.spesesmart.ui.theme.SpeseSmartTheme
 
 class MainActivity : ComponentActivity() {
@@ -13,7 +13,7 @@ class MainActivity : ComponentActivity() {
         enableEdgeToEdge()
         setContent {
             SpeseSmartTheme {
-                DebugScreen()
+                AppRoot()
             }
         }
     }

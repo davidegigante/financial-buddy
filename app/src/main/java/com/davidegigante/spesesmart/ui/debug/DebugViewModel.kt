@@ -43,6 +43,10 @@ class DebugViewModel(application: Application) : AndroidViewModel(application) {
         if (enabled) settings.startDiscovery() else settings.stopDiscovery()
     }
 
+    /** Trasforma una notifica salvata in una spesa "da rivedere" (importo cercato in modo generico). */
+    fun createExpense(notification: CapturedNotification, rawText: String, onResult: (Boolean) -> Unit) =
+        viewModelScope.launch { onResult(app.repository.createPendingFromNotification(notification, rawText)) }
+
     fun delete(id: Long) = viewModelScope.launch { dao.delete(id) }
 
     fun deleteAll() = viewModelScope.launch { dao.deleteAll() }
