@@ -7,6 +7,8 @@ import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.IntrinsicSize
+import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
@@ -286,18 +288,24 @@ private fun MonthCard(d: Dashboard, onClick: () -> Unit) {
                 Text("disponibili", style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
             }
             BudgetBar(m.usedFraction, d.budget.alertPercent)
-            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                StatTile("Budget", m.budgetCents, Modifier.weight(1f))
-                StatTile("Fisse", m.fixedTotalCents, Modifier.weight(1f), note = if (m.fixedToPayCents > 0) "${Money.format(m.fixedToPayCents)}\nda pagare" else "tutte pagate ✓")
-                StatTile("Spese", m.spentCents, Modifier.weight(1f))
+            // IntrinsicSize.Min + fillMaxHeight: i tre riquadri hanno sempre la stessa altezza.
+            Row(Modifier.height(IntrinsicSize.Min), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                // Tutte con una nota su due righe, così i riquadri sono pieni allo stesso modo.
+                StatTile("Budget", m.budgetCents, Modifier.weight(1f), note = "totale\nal mese")
+                StatTile(
+                    "Fisse", m.fixedTotalCents, Modifier.weight(1f),
+                    note = if (m.fixedToPayCents > 0) "${Money.format(m.fixedToPayCents)}\nda pagare" else "tutte\npagate ✓",
+                    highlight = m.fixedToPayCents > 0,
+                )
+                StatTile("Spese", m.spentCents, Modifier.weight(1f), note = "${(m.usedFraction * 100).toInt()}% del\nbudget libero")
             }
         }
     }
 }
 
 @Composable
-private fun StatTile(label: String, cents: Long, modifier: Modifier, note: String? = null) {
-    Surface(color = MaterialTheme.colorScheme.surfaceContainerLow, shape = MaterialTheme.shapes.medium, modifier = modifier) {
+private fun StatTile(label: String, cents: Long, modifier: Modifier, note: String, highlight: Boolean = false) {
+    Surface(color = MaterialTheme.colorScheme.surfaceContainerLow, shape = MaterialTheme.shapes.medium, modifier = modifier.fillMaxHeight()) {
         Column(Modifier.padding(horizontal = 12.dp, vertical = 10.dp)) {
             Text(label, style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
             Text(
@@ -306,9 +314,13 @@ private fun StatTile(label: String, cents: Long, modifier: Modifier, note: Strin
                 maxLines = 1,
                 overflow = TextOverflow.Ellipsis,
             )
-            note?.let {
-                Text(it, style = MaterialTheme.typography.labelSmall.copy(fontFeatureSettings = TABULAR), color = AppTheme.colors.warning, maxLines = 2)
-            }
+            Text(
+                note,
+                style = MaterialTheme.typography.labelSmall.copy(fontFeatureSettings = TABULAR),
+                color = if (highlight) AppTheme.colors.warning else MaterialTheme.colorScheme.onSurfaceVariant,
+                maxLines = 2,
+                modifier = Modifier.padding(top = 2.dp),
+            )
         }
     }
 }
