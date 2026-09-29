@@ -7,6 +7,9 @@ import com.davidegigante.spesesmart.data.BudgetSettings
 import com.davidegigante.spesesmart.data.CaptureSettings
 import com.davidegigante.spesesmart.data.CapturedNotification
 import com.davidegigante.spesesmart.data.SpeseRepository
+import com.davidegigante.spesesmart.domain.IsybankParser
+import com.davidegigante.spesesmart.domain.PaymentParsers
+import com.davidegigante.spesesmart.ui.formatDateTime
 import com.davidegigante.spesesmart.notifications.Reminders
 import com.davidegigante.spesesmart.notifications.TestNotifications
 import kotlinx.coroutines.CoroutineScope
@@ -46,13 +49,23 @@ class SpeseSmartApp : Application() {
 
     /** Cancella le notifiche di app non monitorate oltre il periodo di conservazione. */
     suspend fun purgeOldUnwatched() {
-        val keep = captureSettings.state.value.watchedPackages.toList() + packageName
+        val keep = captureSettings.state.value.watchedPackages.toList() + PaymentParsers.packages + packageName
         database.capturedNotificationDao().purgeUnwatched(
             before = System.currentTimeMillis() - CaptureSettings.UNWATCHED_RETENTION,
             keepPackages = keep,
         )
     }
 
-    suspend fun saveNotification(notification: CapturedNotification): Boolean =
-        database.capturedNotificationDao().insert(notification) != -1L
+    /**
+     * Salva la notifica grezza e, se viene da un'app con un parser (es. Isybank), crea la spesa "da rivedere".
+     * Le notifiche di prova dell'app usano il parser di Isybank, così si può provare tutto senza pagare.
+     */
+    suspend fun saveNotification(notification: CapturedNotification) {
+        val id = database.capturedNotificationDao().insert(notification)
+        if (id == -1L) return // duplicato esatto: già gestita
+        val parser = if (notification.packageName == packageName) IsybankParser else PaymentParsers.forPackage(notification.packageName)
+        parser ?: return
+        val saved = notification.copy(id = id)
+        repository.createPendingFromNotification(saved, saved.toDebugString(formatDateTime(saved.postTime)), parser)
+    }
 }

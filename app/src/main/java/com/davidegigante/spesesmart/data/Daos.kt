@@ -50,6 +50,10 @@ interface ExpenseDao {
     @Query("SELECT COUNT(*) FROM expenses WHERE notificationId = :notificationId")
     suspend fun countFromNotification(notificationId: Long): Int
 
+    /** Spese catturate con lo stesso importo in una finestra di tempo: probabili doppioni. */
+    @Query("SELECT COUNT(*) FROM expenses WHERE source = 'NOTIFICATION' AND amountCents = :amountCents AND occurredAt BETWEEN :from AND :to")
+    suspend fun countCapturedSimilar(amountCents: Long, from: Long, to: Long): Int
+
     @Insert
     suspend fun insert(expense: Expense): Long
 

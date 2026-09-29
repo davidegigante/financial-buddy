@@ -1,6 +1,7 @@
 package com.davidegigante.spesesmart.data
 
 import android.content.Context
+import com.davidegigante.spesesmart.domain.PaymentParsers
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -21,8 +22,9 @@ class CaptureSettings(context: Context) {
         val discoveryUntil: Long,
     ) {
         fun isDiscoveryActive(now: Long = System.currentTimeMillis()) = discoveryUntil > now
+        /** Le app con un parser (es. Isybank) si leggono sempre, anche se non sono nella lista. */
         fun shouldCapture(packageName: String, now: Long = System.currentTimeMillis()) =
-            packageName in watchedPackages || isDiscoveryActive(now)
+            packageName in watchedPackages || packageName in PaymentParsers.packages || isDiscoveryActive(now)
     }
 
     private val prefs = context.getSharedPreferences("capture_settings", Context.MODE_PRIVATE)
@@ -61,7 +63,7 @@ class CaptureSettings(context: Context) {
         /** Per quanto tempo si tengono le notifiche di app non monitorate. */
         const val UNWATCHED_RETENTION = 24L * 60 * 60 * 1000
 
-        /** Google Wallet / Google Pay. Isybank va aggiunta dalla schermata di debug. */
+        /** Google Wallet / Google Pay: per ora solo registrata, il parser arriverà con un testo reale. */
         val DEFAULT_WATCHED = setOf("com.google.android.apps.walletnfcrel")
     }
 }

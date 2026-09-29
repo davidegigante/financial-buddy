@@ -4,11 +4,14 @@ import com.davidegigante.spesesmart.domain.BudgetCalculator
 import com.davidegigante.spesesmart.domain.FixedLine
 import com.davidegigante.spesesmart.domain.Money
 import com.davidegigante.spesesmart.domain.MonthSummary
+import com.davidegigante.spesesmart.domain.ParsedPayment
+import com.davidegigante.spesesmart.domain.PaymentParser
 import com.davidegigante.spesesmart.domain.WeekSummary
 import com.davidegigante.spesesmart.domain.startMillis
 import com.davidegigante.spesesmart.domain.toKey
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.combine
+import java.time.Instant
 import java.time.LocalDate
 import java.time.YearMonth
 import java.time.ZoneId
@@ -97,19 +100,32 @@ class SpeseRepository(
         merchant.takeIf { it.isNotBlank() }?.let { rules.get(MerchantRule.keyOf(it))?.categoryId }
 
     /**
-     * Crea una spesa "da rivedere" da una notifica salvata, cercando l'importo in modo generico.
-     * Restituisce false se non trova un importo o se la spesa esiste già.
+     * Crea una spesa "da rivedere" da una notifica salvata.
+     * Con [parser] usa le regole dell'app (es. Isybank); senza, dal pulsante di debug, cerca un importo qualsiasi.
+     * Restituisce false se il testo non è un pagamento o se la spesa esiste già (anche da un'altra notifica).
      */
-    suspend fun createPendingFromNotification(n: CapturedNotification, rawText: String): Boolean {
-        val amount = Money.findAmount(listOfNotNull(n.title, n.fullText, n.textLines).joinToString("\n")) ?: return false
+    suspend fun createPendingFromNotification(n: CapturedNotification, rawText: String, parser: PaymentParser?): Boolean {
+        val text = listOfNotNull(n.title, n.fullText, n.textLines).joinToString("\n")
+        val postedAt = Instant.ofEpochMilli(n.postTime).atZone(zone).toLocalDateTime()
+        val parsed = if (parser != null) {
+            parser.parse(text, postedAt) ?: return false
+        } else {
+            ParsedPayment(Money.findAmount(text) ?: return false, n.appLabel, occurredAt = null)
+        }
         if (expenses.countFromNotification(n.id) > 0) return false
-        val merchant = n.appLabel
+
+        val occurredAt = parsed.occurredAt?.atZone(zone)?.toInstant()?.toEpochMilli() ?: n.postTime
+        // La stessa transazione può arrivare da più notifiche (es. banca e Google Pay): stesso importo a pochi minuti.
+        val window = DUPLICATE_WINDOW_MINUTES * 60_000
+        if (expenses.countCapturedSimilar(parsed.amountCents, occurredAt - window, occurredAt + window) > 0) return false
+
         expenses.insert(
             Expense(
-                amountCents = amount,
-                merchant = merchant,
-                categoryId = suggestCategory(merchant),
-                occurredAt = n.postTime,
+                amountCents = parsed.amountCents,
+                merchant = parsed.merchant,
+                note = parsed.note,
+                categoryId = suggestCategory(parsed.merchant),
+                occurredAt = occurredAt,
                 source = ExpenseSource.NOTIFICATION,
                 status = ExpenseStatus.PENDING,
                 rawText = rawText,
@@ -197,6 +213,10 @@ class SpeseRepository(
             calculator.month(today, budget, fixedList, payments, range),
             calculator.fixedLines(YearMonth.from(today), fixedList, payments),
         )
+    }
+
+    private companion object {
+        const val DUPLICATE_WINDOW_MINUTES = 15L
     }
 
     private data class Base(
