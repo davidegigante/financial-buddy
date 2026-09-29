@@ -14,7 +14,7 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.Add
 import androidx.compose.material3.AlertDialog
-import androidx.compose.material3.Card
+import com.davidegigante.spesesmart.ui.components.AppCard
 import androidx.compose.material3.FloatingActionButton
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
@@ -96,7 +96,7 @@ fun FixedScreen(onTab: (Tab) -> Unit, onAdd: () -> Unit, onOpen: (Long) -> Unit,
             verticalArrangement = Arrangement.spacedBy(12.dp),
         ) {
             item {
-                Card {
+                AppCard {
                     Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
                         Text(formatMonth(s.month), style = MaterialTheme.typography.labelLarge, color = MaterialTheme.colorScheme.onSurfaceVariant)
                         Text("Accantonate: ${Money.format(s.totalCents)}", style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.SemiBold)
@@ -118,7 +118,7 @@ fun FixedScreen(onTab: (Tab) -> Unit, onAdd: () -> Unit, onOpen: (Long) -> Unit,
             }
             if (s.lines.isNotEmpty()) {
                 item {
-                    Card {
+                    AppCard {
                         Column {
                             s.lines.forEachIndexed { i, line ->
                                 if (i > 0) HorizontalDivider()

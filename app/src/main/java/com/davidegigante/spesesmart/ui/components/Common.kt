@@ -44,6 +44,12 @@ import androidx.compose.ui.unit.dp
 import com.davidegigante.spesesmart.data.Category
 import com.davidegigante.spesesmart.data.Expense
 import com.davidegigante.spesesmart.domain.Money
+import com.davidegigante.spesesmart.ui.theme.AppTheme
+import com.davidegigante.spesesmart.ui.theme.TABULAR
+import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.foundation.layout.height
+import androidx.compose.runtime.getValue
+import androidx.compose.ui.graphics.StrokeCap
 
 enum class Tab(val label: String, val icon: ImageVector) {
     Home("Home", Icons.Outlined.Home),
@@ -59,12 +65,25 @@ fun TabScaffold(
     title: String,
     tab: Tab,
     onTab: (Tab) -> Unit,
+    subtitle: String? = null,
     floatingActionButton: @Composable () -> Unit = {},
     actions: @Composable () -> Unit = {},
     content: @Composable (PaddingValues) -> Unit,
 ) {
     Scaffold(
-        topBar = { TopAppBar(title = { Text(title) }, actions = { actions() }) },
+        topBar = {
+            TopAppBar(
+                title = {
+                    Column {
+                        subtitle?.let {
+                            Text(it, style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                        }
+                        Text(title, style = MaterialTheme.typography.headlineSmall)
+                    }
+                },
+                actions = { actions() },
+            )
+        },
         bottomBar = {
             NavigationBar {
                 Tab.entries.forEach { t ->
@@ -137,23 +156,22 @@ fun CategoryPicker(categories: List<Category>, selectedId: Long?, onSelect: (Lon
     }
 }
 
-/** Barra di avanzamento del budget: verde, poi arancione dalla soglia di avviso, rossa oltre il 100%. */
+/** Barra di avanzamento del budget: acqua, poi arancione dalla soglia di avviso, rossa oltre il 100%. */
 @Composable
 fun BudgetBar(fraction: Float, alertPercent: Int, modifier: Modifier = Modifier) {
-    val color = when {
-        fraction > 1f -> MaterialTheme.colorScheme.error
-        fraction >= alertPercent / 100f -> Warning
-        else -> MaterialTheme.colorScheme.primary
-    }
+    val animated by animateFloatAsState(fraction.coerceIn(0f, 1f), label = "bar")
     LinearProgressIndicator(
-        progress = { fraction.coerceIn(0f, 1f) },
-        color = color,
-        modifier = modifier.fillMaxWidth(),
+        progress = { animated },
+        color = budgetColor(fraction, alertPercent),
+        trackColor = MaterialTheme.colorScheme.surfaceContainerHigh,
+        strokeCap = StrokeCap.Round,
+        gapSize = 0.dp,
+        modifier = modifier.fillMaxWidth().height(8.dp),
         drawStopIndicator = {},
     )
 }
 
-val Warning = Color(0xFFE08A00)
+val Warning: Color @Composable get() = AppTheme.colors.warning
 
 @Composable
 fun PendingBadge() {
@@ -170,14 +188,10 @@ fun PendingBadge() {
 @Composable
 fun ExpenseRow(expense: Expense, category: Category?, subtitle: String?, onClick: () -> Unit) {
     Row(
-        modifier = Modifier.fillMaxWidth().clickable(onClick = onClick).padding(horizontal = 16.dp, vertical = 10.dp),
+        modifier = Modifier.fillMaxWidth().clickable(onClick = onClick).padding(horizontal = 20.dp, vertical = 10.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {
-        Surface(shape = CircleShape, color = MaterialTheme.colorScheme.secondaryContainer, modifier = Modifier.size(40.dp)) {
-            Box(contentAlignment = Alignment.Center) {
-                Text(category?.emoji ?: "❔", style = MaterialTheme.typography.titleMedium)
-            }
-        }
+        CategoryAvatar(category)
         Column(Modifier.weight(1f).padding(horizontal = 12.dp)) {
             Text(
                 expense.merchant.ifBlank { category?.name ?: "Spesa" },
@@ -197,7 +211,10 @@ fun ExpenseRow(expense: Expense, category: Category?, subtitle: String?, onClick
             }
         }
         Column(horizontalAlignment = Alignment.End) {
-            Text(Money.format(expense.amountCents), style = MaterialTheme.typography.bodyLarge, fontWeight = FontWeight.Medium)
+            Text(
+                "−" + Money.format(expense.amountCents),
+                style = MaterialTheme.typography.titleMedium.copy(fontFeatureSettings = TABULAR),
+            )
             if (expense.isPending) PendingBadge()
         }
     }

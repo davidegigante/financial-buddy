@@ -8,6 +8,7 @@ import com.davidegigante.spesesmart.domain.ParsedPayment
 import com.davidegigante.spesesmart.domain.PaymentParser
 import com.davidegigante.spesesmart.domain.WeekSummary
 import com.davidegigante.spesesmart.domain.startMillis
+import com.davidegigante.spesesmart.domain.toLocalDate
 import com.davidegigante.spesesmart.domain.toKey
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.combine
@@ -26,6 +27,8 @@ data class Dashboard(
     val pending: List<Expense>,
     val recent: List<Expense>,
     val categories: Map<Long, Category>,
+    /** Spese del mese per categoria (null = senza categoria), dalla più grande. */
+    val monthByCategory: List<Pair<Long?, Long>>,
 )
 
 class SpeseRepository(
@@ -197,6 +200,11 @@ class SpeseRepository(
                 pending = pending,
                 recent = recent,
                 categories = b.categories.associateBy { it.id },
+                monthByCategory = rangeExpenses
+                    .filter { YearMonth.from(it.occurredAt.toLocalDate(zone)) == YearMonth.from(today) }
+                    .groupBy { it.categoryId }
+                    .map { (id, items) -> id to items.sumOf { it.amountCents } }
+                    .sortedByDescending { it.second },
             )
         }
     }

@@ -14,7 +14,7 @@ import androidx.compose.material.icons.outlined.BugReport
 import androidx.compose.material.icons.outlined.Category
 import androidx.compose.material.icons.outlined.Lock
 import androidx.compose.material3.AlertDialog
-import androidx.compose.material3.Card
+import com.davidegigante.spesesmart.ui.components.AppCard
 import androidx.compose.material3.FilterChip
 import androidx.compose.material3.Icon
 import androidx.compose.material3.ListItem
@@ -49,7 +49,7 @@ fun SettingsScreen(onTab: (Tab) -> Unit, onOpenCategories: () -> Unit, onOpenDeb
             verticalArrangement = Arrangement.spacedBy(12.dp),
         ) {
             item {
-                Card {
+                AppCard {
                     ListItem(
                         headlineContent = { Text("Budget mensile") },
                         supportingContent = {
@@ -78,7 +78,7 @@ fun SettingsScreen(onTab: (Tab) -> Unit, onOpenCategories: () -> Unit, onOpenDeb
                 }
             }
             item {
-                Card(onClick = onOpenCategories) {
+                AppCard(onClick = onOpenCategories) {
                     ListItem(
                         headlineContent = { Text("Categorie") },
                         supportingContent = { Text("Aggiungi, rinomina o elimina") },
@@ -88,7 +88,7 @@ fun SettingsScreen(onTab: (Tab) -> Unit, onOpenCategories: () -> Unit, onOpenDeb
                 }
             }
             item {
-                Card(onClick = onOpenDebug) {
+                AppCard(onClick = onOpenDebug) {
                     ListItem(
                         headlineContent = { Text("Notifiche catturate") },
                         supportingContent = { Text("Accesso alle notifiche, modalità scoperta, testi grezzi") },
@@ -98,7 +98,7 @@ fun SettingsScreen(onTab: (Tab) -> Unit, onOpenCategories: () -> Unit, onOpenDeb
                 }
             }
             item {
-                Card {
+                AppCard {
                     ListItem(
                         headlineContent = { Text("Privacy") },
                         supportingContent = {
